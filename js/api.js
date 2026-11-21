@@ -2,7 +2,7 @@
 import { SUPABASE_URL, SUPABASE_ANON } from './config.js';
 
 export const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-  auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true },
+  auth: { storage: window.sessionStorage, storageKey: 'heshbonot-auth', persistSession: true, autoRefreshToken: true },
   db: { schema: 'heshbonot' },
 });
 export const ctx = { user: null, biz: null, role: null };
