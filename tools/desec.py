@@ -15,6 +15,6 @@ if cmd == "list":
     for x in r.json():
         print(x["subname"] or "@", x["type"], x["ttl"], x["records"] if x["type"] in ("CNAME", "A") else "")
 elif cmd == "add":
-    body = [{"subname": "heshbonot", "type": "CNAME", "ttl": 3600, "records": ["yossi6742853.github.io."]}]
+    body = [{"subname": "heshbonot", "type": "CNAME", "ttl": 3600, "records": ["6787012-max.github.io."]}]
     r = requests.post(B, headers=H, json=body, verify=False)
     print(r.status_code, r.text[:200] if r.status_code >= 300 else "ok")

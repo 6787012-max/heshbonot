@@ -3,7 +3,7 @@
 אתר סטטי (HTML + ES modules, ללא build) בעברית RTL: חשבוניות, קבלות, הצעות מחיר, לקוחות וספקים, הוצאות,
 ייבוא תנועות בנק עם התאמה אוטומטית, דוחות מע"מ / רווח והפסד / מקדמות / גיל חובות, תזכורות גבייה ויצוא לרואה חשבון.
 
-- כתובת: https://heshbonot.mokad.co.il (גיבוי: https://yossi6742853.github.io/heshbonot/)
+- כתובת: https://heshbonot.mokad.co.il (גיבוי: https://6787012-max.github.io/heshbonot/)
 - אחסון האתר: GitHub Pages (ריפו ציבורי, אפס סודות בו)
 - מסד ואימות: Supabase, פרויקט משותף `cmsusfmwjtpfewbydzpi`, schema נפרד `heshbonot`
 
@@ -32,7 +32,7 @@
 1. `python tools/sb.py sql db/01_schema.sql` (idempotent).
 2. `python tools/expose.py` מוסיף `heshbonot` ל-db_schema של ה-API (לא מסיר קיימים; גיבוי הערך הקודם ב-`_backups/`).
 3. `python tools/setup.py` יוצר עסק ומשתמש owner; הסיסמה נכתבת ל-`~/.secrets/heshbonot-initial.txt` (לא מודפסת). המשתמש חייב להחליף סיסמה ולרשום MFA בכניסה הראשונה.
-4. DNS: CNAME `heshbonot` -> `yossi6742853.github.io.` ב-deSEC (`tools/desec.py add`), ואז הגדרת custom domain ב-Pages + `https_enforced`.
+4. DNS: CNAME `heshbonot` -> `6787012-max.github.io.` ב-deSEC (`tools/desec.py add`), ואז הגדרת custom domain ב-Pages + `https_enforced`.
 5. לפני כל push: `python C:/tools/secret-audit/audit.py C:/projects/heshbonot`.
 
 ## גיבוי
