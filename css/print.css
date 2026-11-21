@@ -1,0 +1,8 @@
+@page { size: A4; margin: 0; }
+html, body { background: #fff !important; }
+.side, .topbar, .no-print, #toasts, .modal-back, .doc-form, .burger { display: none !important; }
+.shell { display: block; } .main { padding: 0 !important; }
+.card { box-shadow: none; padding: 0; margin: 0; background: none; }
+.doc-layout { display: block; } .preview-wrap { position: static; max-height: none; overflow: visible; background: none; padding: 0; }
+.paper { box-shadow: none; margin: 0; width: 210mm; min-height: 297mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.paper th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }

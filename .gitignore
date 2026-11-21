@@ -1,0 +1,5 @@
+_backups/
+_sql_out.json
+*.pyc
+__pycache__/
+_secrets/
