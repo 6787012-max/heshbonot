@@ -4,7 +4,7 @@
 ייבוא תנועות בנק עם התאמה אוטומטית, דוחות מע"מ / רווח והפסד / מקדמות / גיל חובות, תזכורות גבייה ויצוא לרואה חשבון.
 
 - כתובת: https://heshbonot.mokad.co.il (גיבוי: https://6787012-max.github.io/heshbonot/)
-- אחסון האתר: GitHub Pages (ריפו ציבורי, אפס סודות בו)
+- אחסון האתר: GitHub Pages, ריפו ציבורי `6787012-max/heshbonot` (בחשבון yossi6742853 Actions מושבת ולכן Pages לא נבנה שם), אפס סודות בריפו
 - מסד ואימות: Supabase, פרויקט משותף `cmsusfmwjtpfewbydzpi`, schema נפרד `heshbonot`
 
 ## מבנה
