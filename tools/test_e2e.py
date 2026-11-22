@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""בדיקת צד-שרת מקצה לקצה. יוצר עסק בדיקה ושני משתמשי בדיקה, ומוחק הכול בסוף."""
+"""בדיקת צד-שרת מקצה לקצה (כניסה עם גוגל: הרשאה לפי חברות ב-members והזמנה במייל). יוצר עסק בדיקה ושני משתמשי בדיקה, ומוחק הכול בסוף."""
 import io, json, os, secrets, string, sys, time, uuid
-import urllib3, requests, pyotp
+import urllib3, requests
 urllib3.disable_warnings()
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import sb
@@ -58,56 +58,52 @@ u1 = admin_create(e1, p1)
 u2 = admin_create(e2, p2)
 st, out = sb.run_sql("insert into heshbonot.businesses(name, vat_type) values ('בדיקה-%s','authorized') returning id" % tag)
 bid = json.loads(out)[0]["id"]
-sb.run_sql("insert into heshbonot.members values ('%s','%s','owner')" % (u1, bid))
+sb.run_sql("insert into heshbonot.invites(email, business_id, role) values ('%s','%s','owner')" % (e1.upper(), bid))
 BIZ2 = None
 try:
     s1 = login(e1, p1)
     tok1 = s1["access_token"]
-    # --- בלי aal2 ---
-    r = get(tok1, "businesses?select=id")
-    check("aal1: businesses מחזיר 0 שורות", r.status_code == 200 and r.json() == [], r.text)
-    r = get(tok1, "members?select=*")
-    check("aal1: members מחזיר 0 שורות", r.status_code == 200 and r.json() == [], r.text)
+    # --- משתמש מחובר בלי חברות (עוד לפני claim_invites) ---
+    for tb in ("businesses", "members", "documents", "contacts", "expenses", "bank_txns", "audit_log", "doc_sequences"):
+        r = get(tok1, tb + "?select=*")
+        check("מחובר בלי members: %s מחזיר 0 שורות" % tb, r.status_code == 200 and r.json() == [], r.text[:80])
     r = rpc(tok1, "issue_document", {"p": {"business_id": bid, "doc_type": "tax_invoice", "customer_name": "x",
                                             "items": [{"description": "a", "qty": 1, "unit_price": 10}]}})
-    check("aal1: הפקת מסמך נחסמת", r.status_code >= 400, r.text)
+    check("מחובר בלי members: הפקת מסמך נחסמת", r.status_code >= 400, r.text[:100])
     r = requests.get(BASE + "/rest/v1/businesses?select=id", verify=False, headers={**UA, "apikey": ANON, "Authorization": "Bearer " + ANON, "Accept-Profile": "heshbonot"})
     check("anon: נחסם", r.status_code in (401, 403, 404) or r.json() == [], "%s %s" % (r.status_code, r.text[:80]))
+    r = requests.get(BASE + "/rest/v1/invites?select=*", verify=False, headers=H(tok1))
+    check("authenticated לא קורא את invites", r.status_code >= 400 or r.json() == [], "%s %s" % (r.status_code, r.text[:80]))
+    r = requests.post(BASE + "/rest/v1/invites", verify=False, headers=H(tok1), json={"email": e1, "business_id": bid, "role": "owner"})
+    check("authenticated לא כותב ל-invites", r.status_code >= 400, "%s %s" % (r.status_code, r.text[:80]))
+    r = requests.post(BASE + "/rest/v1/members", verify=False, headers=H(tok1), json={"user_id": u1, "business_id": bid, "role": "owner"})
+    check("authenticated לא מוסיף את עצמו ל-members", r.status_code >= 400, "%s %s" % (r.status_code, r.text[:80]))
+    r = requests.post(BASE + "/rest/v1/rpc/claim_invites", verify=False, headers={**UA, "apikey": ANON, "Authorization": "Bearer " + ANON, "Content-Profile": "heshbonot", "Content-Type": "application/json"}, json={})
+    check("anon לא מריץ claim_invites", r.status_code >= 400, "%s %s" % (r.status_code, r.text[:80]))
 
-    # --- רישום TOTP ---
-    r = requests.post(BASE + "/auth/v1/factors", verify=False, headers={**UA, "apikey": ANON, "Authorization": "Bearer " + tok1},
-                      json={"factor_type": "totp", "friendly_name": "t" + tag})
-    f = r.json()
-    secret, fid = f["totp"]["secret"], f["id"]
-    ch = requests.post(BASE + "/auth/v1/factors/%s/challenge" % fid, verify=False,
-                       headers={**UA, "apikey": ANON, "Authorization": "Bearer " + tok1}).json()
-    v = requests.post(BASE + "/auth/v1/factors/%s/verify" % fid, verify=False,
-                      headers={**UA, "apikey": ANON, "Authorization": "Bearer " + tok1},
-                      json={"challenge_id": ch["id"], "code": pyotp.TOTP(secret).now()})
-    check("רישום TOTP ואימות", v.status_code == 200, v.text[:100])
-    tok = v.json()["access_token"]
-    import base64
-    claims = json.loads(base64.urlsafe_b64decode(tok.split(".")[1] + "=="))
-    check("aal2 בטוקן", claims.get("aal") == "aal2", claims.get("aal"))
-
-    # --- משתמש בלי members, עם MFA ---
-    s2 = login(e2, p2); t2 = s2["access_token"]
-    r = requests.post(BASE + "/auth/v1/factors", verify=False, headers={**UA, "apikey": ANON, "Authorization": "Bearer " + t2},
-                      json={"factor_type": "totp", "friendly_name": "u" + tag}).json()
-    ch = requests.post(BASE + "/auth/v1/factors/%s/challenge" % r["id"], verify=False, headers={**UA, "apikey": ANON, "Authorization": "Bearer " + t2}).json()
-    v2 = requests.post(BASE + "/auth/v1/factors/%s/verify" % r["id"], verify=False, headers={**UA, "apikey": ANON, "Authorization": "Bearer " + t2},
-                       json={"challenge_id": ch["id"], "code": pyotp.TOTP(r["totp"]["secret"]).now()}).json()
-    t2 = v2["access_token"]
+    # --- משתמש בלי הזמנה: claim_invites לא נותן כלום ---
+    t2 = login(e2, p2)["access_token"]
+    r = rpc(t2, "claim_invites", {})
+    check("claim_invites בלי הזמנה: ללא שגיאה", r.status_code < 300, r.text[:80])
     for tb in ("businesses", "documents", "contacts", "expenses", "bank_txns", "audit_log", "members"):
         rr = get(t2, tb + "?select=*")
-        check("aal2 בלי חברות: %s מחזיר 0" % tb, rr.status_code == 200 and rr.json() == [], rr.text[:80])
+        check("אחרי claim בלי הזמנה: %s מחזיר 0" % tb, rr.status_code == 200 and rr.json() == [], rr.text[:80])
     r = rpc(t2, "issue_document", {"p": {"business_id": bid, "doc_type": "tax_invoice", "customer_name": "x",
                                           "items": [{"description": "a", "qty": 1, "unit_price": 10}]}})
-    check("בלי חברות: הפקה נחסמת", r.status_code >= 400, r.text[:100])
+    check("בלי הזמנה: הפקה נחסמת", r.status_code >= 400, r.text[:100])
 
-    # --- עם aal2 וחברות ---
+    # --- משתמש עם הזמנה (מייל בהתאמת אותיות שונה) מקבל גישה אחרי claim_invites ---
+    r = rpc(tok1, "claim_invites", {})
+    check("claim_invites עם הזמנה", r.status_code < 300, r.text[:80])
+    r = rpc(tok1, "claim_invites", {})
+    check("claim_invites חוזר (idempotent)", r.status_code < 300, r.text[:80])
+    st, out = sb.run_sql("select count(*) n, min(role) r from heshbonot.members where user_id='%s' and business_id='%s'" % (u1, bid))
+    check("נוצרה שורת members אחת בתפקיד owner", json.loads(out)[0]["n"] == 1 and json.loads(out)[0]["r"] == "owner", out[:80])
+    tok = tok1
+
+    # --- עם חברות (owner) ---
     r = get(tok, "businesses?select=id,name")
-    check("aal2+owner: רואה את העסק", r.status_code == 200 and len(r.json()) == 1, r.text[:100])
+    check("owner: רואה את העסק", r.status_code == 200 and len(r.json()) == 1, r.text[:100])
     r = post(tok, "contacts", {"business_id": bid, "kind": "customer", "name": "לקוח בדיקה", "tax_id": "514000000"})
     cust_id = r.json()[0]["id"] if r.status_code < 300 else None
     check("יצירת לקוח", cust_id is not None, r.text[:100])

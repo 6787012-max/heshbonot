@@ -1,8 +1,9 @@
-// גישה לנתונים. הכול מול schema heshbonot דרך PostgREST (RLS + aal2 נאכפים בשרת).
+// גישה לנתונים. הכול מול schema heshbonot דרך PostgREST (RLS + חברות ב-members נאכפים בשרת).
 import { SUPABASE_URL, SUPABASE_ANON } from './config.js';
 
 export const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-  auth: { storage: window.sessionStorage, storageKey: 'heshbonot-auth', persistSession: true, autoRefreshToken: true },
+  auth: { storage: window.sessionStorage, storageKey: 'heshbonot-auth', persistSession: true, autoRefreshToken: true,
+    flowType: 'pkce', detectSessionInUrl: true },
   db: { schema: 'heshbonot' },
 });
 export const ctx = { user: null, biz: null, role: null };
